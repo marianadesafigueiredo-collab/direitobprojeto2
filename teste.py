@@ -17,5 +17,4 @@ st.write(frase)
 time= st.text_input("Qual é o melhor time do Rio")
 if time== "flamengo":
    st.write("Acertou")
-else:
-   st.write("Errou")
+
