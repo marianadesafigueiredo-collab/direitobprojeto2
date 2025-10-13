@@ -10,6 +10,5 @@ fig= px.scatter_geo(dataset,
                     lat=dataset['latitude'],
                     lon=dataset['longitude'],
                     hover_name=dataset['nome'])
-fig.update_layout(title='Coordenadas dos países no mapa',
-                  geo_scope= 'world')
-
+fig.update_layout(title='Coordenadas dos países no mapa', geo_scope= 'world')
+st.plotly_charts(fig, use_container_width=True, theme="streamlit")
