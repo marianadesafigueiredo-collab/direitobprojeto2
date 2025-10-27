@@ -1,5 +1,4 @@
 import streamlit as st
-
 # Função para calcular a pena
 def calcular_dosimetria(gravidade, antecedentes, atenuantes):
     pena_base = 0
