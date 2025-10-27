@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-
 # Função para gerar um caso fictício
 def gerar_caso():
     casos = [
