@@ -1,0 +1,50 @@
+import streamlit as st
+
+# Função para calcular a pena
+def calcular_dosimetria(gravidade, antecedentes, atenuantes):
+    pena_base = 0
+
+    # Tabela de gravidade do crime (simulação)
+    if gravidade == 'Leve':
+        pena_base = 2
+    elif gravidade == 'Média':
+        pena_base = 5
+    elif gravidade == 'Grave':
+        pena_base = 10
+
+    # Agravante: antecedentes criminais (aumento)
+    if antecedentes == 'Sim':
+        pena_base += 2
+
+    # Atenuante: circunstâncias favoráveis (redução)
+    if atenuantes == 'Sim':
+        pena_base -= 1
+
+    return pena_base
+
+# Interface Streamlit
+st.title('Simulador de Dosimetria da Pena')
+
+st.write("""
+    Bem-vindo ao simulador de dosimetria da pena! 
+    Aplique as variáveis de um crime e veja o cálculo da pena com base nas informações fornecidas.
+""")
+
+# Inputs para o usuário
+gravidade = st.selectbox(
+    'Qual é a gravidade do crime?',
+    ('Leve', 'Média', 'Grave'))
+
+antecedentes = st.radio(
+    'O réu tem antecedentes criminais?',
+    ('Sim', 'Não'))
+
+atenuantes = st.radio(
+    'Existem circunstâncias atenuantes?',
+    ('Sim', 'Não'))
+
+# Cálculo da pena
+pena = calcular_dosimetria(gravidade, antecedentes, atenuantes)
+
+# Resultado
+st.write(f'A pena sugerida para este caso é de {pena} anos de prisão.')
