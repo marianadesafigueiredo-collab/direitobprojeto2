@@ -1,76 +1,85 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 
-# Função para calcular o valor da indenização
-def calcular_indenizacao(valor_dano, tipo_dano, agravantes, juros, correcao_monetaria, dias):
+# Função para calcular penalidade por rescisão antecipada
+def calcular_penalidade(valor_contrato, percentual_penalidade):
     """
-    Função que calcula a indenização com base no valor do dano, tipo de dano, agravantes, juros e correção monetária.
+    Função que calcula a penalidade por rescisão antecipada.
     
-    :param valor_dano: Valor estimado do dano (R$).
-    :param tipo_dano: Tipo de dano (material ou moral).
-    :param agravantes: Fatores agravantes (R$ adicionais).
-    :param juros: Taxa de juros aplicada (em percentual).
-    :param correcao_monetaria: Taxa de correção monetária (em percentual).
-    :param dias: Número de dias desde o evento.
-    :return: Valor total da indenização.
+    :param valor_contrato: Valor total do contrato (R$).
+    :param percentual_penalidade: Percentual da penalidade (em %).
+    :return: Valor da penalidade.
     """
+    penalidade = valor_contrato * (percentual_penalidade / 100)
+    return penalidade
+
+# Função para calcular o valor da remuneração (baseado no tempo do contrato)
+def calcular_remuneracao(valor_contrato, duracao_meses):
+    """
+    Função que calcula a remuneração mensal baseada no valor do contrato e a duração.
     
-    # Cálculo da correção monetária (composta)
-    correcao = (1 + correcao_monetaria/100) ** (dias / 365)
-    valor_corrigido = valor_dano * correcao
-    
-    # Cálculo dos juros (compostos)
-    juros_calculados = valor_corrigido * (1 + juros / 100) ** (dias / 365) - valor_corrigido
-    
-    # Calcular valor final com agravantes
-    valor_final = valor_corrigido + juros_calculados + agravantes
-    
-    return valor_final, valor_corrigido, juros_calculados
+    :param valor_contrato: Valor total do contrato (R$).
+    :param duracao_meses: Duração do contrato em meses.
+    :return: Remuneração mensal.
+    """
+    remuneracao_mensal = valor_contrato / duracao_meses
+    return remuneracao_mensal
 
 # Interface Streamlit
-st.title("Calculadora de Indenização Judicial por Danos Morais e Materiais")
+st.title("Simulador de Cláusulas Contratuais")
 
-# Inputs
-valor_dano = st.number_input("Informe o valor estimado do dano (R$):", min_value=0.0, step=1000.0)
-tipo_dano = st.selectbox("Escolha o tipo de dano", ["Dano Material", "Dano Moral"])
-agravantes = st.number_input("Informe o valor de agravantes (ex: sofrimento psicológico, lesões permanentes) (R$):", min_value=0.0)
-juros = st.number_input("Informe a taxa de juros (em %):", min_value=0.0)
-correcao_monetaria = st.number_input("Informe a taxa de correção monetária (em %):", min_value=0.0)
-dias = st.number_input("Informe o número de dias desde o evento:", min_value=0)
+# Entrada do valor do contrato
+valor_contrato = st.number_input("Informe o valor total do contrato (R$):", min_value=0.0, step=1000.0)
 
-# Cálculo da indenização
-indenizacao_total, valor_corrigido, juros_calculados = calcular_indenizacao(valor_dano, tipo_dano, agravantes, juros, correcao_monetaria, dias)
+# Seção para a rescisão
+st.header("Cláusula de Rescisão Antecipada")
+percentual_penalidade = st.slider("Escolha o percentual de penalidade por rescisão antecipada (%)", 0, 20, 10)
 
-# Exibir resultados
-st.write(f"### Resultados do Cálculo da Indenização:")
-st.write(f"**Valor corrigido do dano** (com correção monetária): R${valor_corrigido:,.2f}")
-st.write(f"**Valor de juros aplicados**: R${juros_calculados:,.2f}")
-st.write(f"**Valor final da indenização**: R${indenizacao_total:,.2f}")
+# Cálculo da penalidade
+penalidade = calcular_penalidade(valor_contrato, percentual_penalidade)
 
-# Exibindo uma visualização dos valores
-st.write("### Gráfico de Comparação dos Valores")
+# Seção para a duração do contrato
+st.header("Cláusula de Remuneração")
+duracao_meses = st.number_input("Informe a duração do contrato em meses:", min_value=1, step=1)
+
+# Cálculo da remuneração mensal
+remuneracao_mensal = calcular_remuneracao(valor_contrato, duracao_meses)
+
+# Exibir os resultados
+st.write(f"**Valor do contrato**: R${valor_contrato:,.2f}")
+st.write(f"**Penalidade por rescisão antecipada**: R${penalidade:,.2f}")
+st.write(f"**Remuneração mensal**: R${remuneracao_mensal:,.2f}")
+
+# Exibir um resumo do contrato
+st.header("Resumo do Contrato")
+st.write(f"Se o contrato for rescindido antecipadamente, a penalidade será de R${penalidade:,.2f}.")
+st.write(f"A remuneração mensal acordada para a duração do contrato será de R${remuneracao_mensal:,.2f}.")
+
+# Adicionando uma cláusula de pagamento antecipado (opcional)
+st.header("Cláusula de Pagamento Antecipado")
+pagamento_antecipado = st.checkbox("Simular pagamento antecipado")
+
+if pagamento_antecipado:
+    meses_antecipado = st.slider("Selecione a quantidade de meses a serem pagos antecipadamente", 1, duracao_meses)
+    valor_pago_antecipado = remuneracao_mensal * meses_antecipado
+    st.write(f"Se o pagamento for feito para {meses_antecipado} meses de forma antecipada, o valor pago será de R${valor_pago_antecipado:,.2f}.")
+
+# Gráfico de distribuição do valor do contrato
+st.header("Distribuição do Valor do Contrato")
+import matplotlib.pyplot as plt
+labels = ["Valor do Contrato", "Penalidade por Rescisão", "Remuneração Mensal"]
+values = [valor_contrato, penalidade, remuneracao_mensal * duracao_meses]
+
 fig, ax = plt.subplots()
-labels = ['Valor Inicial', 'Correção Monetária', 'Juros', 'Valor Final']
-values = [valor_dano, valor_corrigido - valor_dano, juros_calculados, indenizacao_total - agravantes]
-ax.bar(labels, values, color=['blue', 'orange', 'green', 'red'])
-ax.set_ylabel('Valor (R$)')
-ax.set_title(f"Distribuição dos Valores da Indenização para um Dano {tipo_dano}")
+ax.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=["#66b3ff", "#ff6666", "#99ff99"])
+ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 st.pyplot(fig)
 
-# Detalhes adicionais sobre o cálculo
+# Conclusão e observações
 st.markdown("""
-### Detalhes sobre o Cálculo:
-- **Correção Monetária**: Considera a inflação ou o índice de correção monetária do período.
-- **Juros**: Juros compostos aplicados ao valor corrigido com base no número de dias passados desde o evento.
-- **Agravantes**: Fatores como sofrimento psicológico, dor, e perda de qualidade de vida podem aumentar o valor da indenização.
+### Observações Importantes:
+- **Penalidade por Rescisão Antecipada**: É calculada com base no percentual informado. Normalmente, contratos comerciais incluem uma cláusula que estipula uma penalidade por rescisão antecipada.
+- **Remuneração Mensal**: A remuneração é dividida igualmente ao longo da duração do contrato. Esse valor pode ser ajustado para casos específicos.
+- **Pagamento Antecipado**: Caso haja um pagamento antecipado de meses, o valor será descontado do total do contrato.
 """)
-
-# Exemplo de tabela de referência
-st.markdown("""
-### Exemplos de Tipos de Dano:
-- **Dano Material**: Danos a bens patrimoniais ou materiais (ex: danos em veículos, propriedades, etc.).
-- **Dano Moral**: Danos à integridade psicológica ou à dignidade da pessoa.
-""")
-
