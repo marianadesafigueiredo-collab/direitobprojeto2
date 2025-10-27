@@ -9,7 +9,7 @@ st.title("Consulta de Deputados - Câmara dos Deputados")
 nome_deputado = st.text_input("Digite o nome do deputado:")
 
 if nome_deputado:
-    url = f"https://www.camara.leg.br/internet/agencia/infograficos-html5/tabelasEleicoes/deputados-eleitos-estado/nome={nome_deputado}"
+    url = f"https://dadosabertos.camara.leg.br/api/v2/deputados?nome={nome_deputado}"
     
     try:
         response = requests.get(url, timeout=10)
