@@ -1,53 +1,76 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Função para calcular os honorários
-def calcular_honorarios(valor_causa, tipo_acao, percentual=0.1, valor_fixo=0):
+# Função para calcular o valor da indenização
+def calcular_indenizacao(valor_dano, tipo_dano, agravantes, juros, correcao_monetaria, dias):
     """
-    Função que calcula o valor dos honorários advocatícios com base no valor da causa e tipo de ação.
+    Função que calcula a indenização com base no valor do dano, tipo de dano, agravantes, juros e correção monetária.
     
-    :param valor_causa: Valor monetário da causa (R$)
-    :param tipo_acao: Tipo de ação (ex: "Cível", "Trabalhista", etc.)
-    :param percentual: Percentual sobre o valor da causa (default: 10%)
-    :param valor_fixo: Valor fixo, se aplicável (default: 0)
-    :return: Valor final dos honorários
+    :param valor_dano: Valor estimado do dano (R$).
+    :param tipo_dano: Tipo de dano (material ou moral).
+    :param agravantes: Fatores agravantes (R$ adicionais).
+    :param juros: Taxa de juros aplicada (em percentual).
+    :param correcao_monetaria: Taxa de correção monetária (em percentual).
+    :param dias: Número de dias desde o evento.
+    :return: Valor total da indenização.
     """
-    if valor_fixo > 0:
-        # Caso seja um valor fixo
-        honorarios = valor_fixo
-    else:
-        # Caso seja calculado por percentual
-        honorarios = valor_causa * percentual
     
-    return honorarios
+    # Cálculo da correção monetária (composta)
+    correcao = (1 + correcao_monetaria/100) ** (dias / 365)
+    valor_corrigido = valor_dano * correcao
+    
+    # Cálculo dos juros (compostos)
+    juros_calculados = valor_corrigido * (1 + juros / 100) ** (dias / 365) - valor_corrigido
+    
+    # Calcular valor final com agravantes
+    valor_final = valor_corrigido + juros_calculados + agravantes
+    
+    return valor_final, valor_corrigido, juros_calculados
 
-# Interface do Streamlit
-st.title("Calculadora de Honorários Advocatícios")
+# Interface Streamlit
+st.title("Calculadora de Indenização Judicial por Danos Morais e Materiais")
 
-# Inputs do usuário
-valor_causa = st.number_input("Informe o valor da causa (R$):", min_value=0.0, step=1000.0)
-tipo_acao = st.selectbox("Escolha o tipo de ação", ["Cível", "Trabalhista", "Família", "Criminal", "Empresarial"])
-percentual = st.slider("Escolha o percentual de honorários (%)", min_value=1, max_value=30, value=10, step=1)
-valor_fixo = st.number_input("Ou informe o valor fixo para honorários (R$):", min_value=0.0, value=0.0)
+# Inputs
+valor_dano = st.number_input("Informe o valor estimado do dano (R$):", min_value=0.0, step=1000.0)
+tipo_dano = st.selectbox("Escolha o tipo de dano", ["Dano Material", "Dano Moral"])
+agravantes = st.number_input("Informe o valor de agravantes (ex: sofrimento psicológico, lesões permanentes) (R$):", min_value=0.0)
+juros = st.number_input("Informe a taxa de juros (em %):", min_value=0.0)
+correcao_monetaria = st.number_input("Informe a taxa de correção monetária (em %):", min_value=0.0)
+dias = st.number_input("Informe o número de dias desde o evento:", min_value=0)
 
-# Cálculo de honorários
-honorarios = calcular_honorarios(valor_causa, tipo_acao, percentual, valor_fixo)
+# Cálculo da indenização
+indenizacao_total, valor_corrigido, juros_calculados = calcular_indenizacao(valor_dano, tipo_dano, agravantes, juros, correcao_monetaria, dias)
 
-# Exibir os resultados
-st.write(f"O valor dos honorários advocatícios para uma causa de R${valor_causa:,.2f} é de R${honorarios:,.2f}")
+# Exibir resultados
+st.write(f"### Resultados do Cálculo da Indenização:")
+st.write(f"**Valor corrigido do dano** (com correção monetária): R${valor_corrigido:,.2f}")
+st.write(f"**Valor de juros aplicados**: R${juros_calculados:,.2f}")
+st.write(f"**Valor final da indenização**: R${indenizacao_total:,.2f}")
 
-# Exibição do tipo de ação e percentual utilizado
-st.write(f"Tipo de Ação: {tipo_acao}")
-st.write(f"Percentual de Honorários: {percentual}%")
+# Exibindo uma visualização dos valores
+st.write("### Gráfico de Comparação dos Valores")
+fig, ax = plt.subplots()
+labels = ['Valor Inicial', 'Correção Monetária', 'Juros', 'Valor Final']
+values = [valor_dano, valor_corrigido - valor_dano, juros_calculados, indenizacao_total - agravantes]
+ax.bar(labels, values, color=['blue', 'orange', 'green', 'red'])
+ax.set_ylabel('Valor (R$)')
+ax.set_title(f"Distribuição dos Valores da Indenização para um Dano {tipo_dano}")
+st.pyplot(fig)
 
-# Informações sobre os tipos de ações e tabelas
+# Detalhes adicionais sobre o cálculo
 st.markdown("""
-### Tabela de Honorários (exemplo):
-- **Ação Cível**: 10% sobre o valor da causa.
-- **Ação Trabalhista**: 15% sobre o valor da causa.
-- **Ação de Família**: 12% sobre o valor da causa.
-- **Ação Criminal**: 8% sobre o valor da causa.
-- **Ação Empresarial**: Valor fixo dependendo do tipo de serviço.
+### Detalhes sobre o Cálculo:
+- **Correção Monetária**: Considera a inflação ou o índice de correção monetária do período.
+- **Juros**: Juros compostos aplicados ao valor corrigido com base no número de dias passados desde o evento.
+- **Agravantes**: Fatores como sofrimento psicológico, dor, e perda de qualidade de vida podem aumentar o valor da indenização.
+""")
 
-*Obs: Os valores de percentual e valores fixos são apenas exemplos. A tabela de honorários pode ser adaptada conforme a OAB ou a negociação entre o advogado e o cliente.*
+# Exemplo de tabela de referência
+st.markdown("""
+### Exemplos de Tipos de Dano:
+- **Dano Material**: Danos a bens patrimoniais ou materiais (ex: danos em veículos, propriedades, etc.).
+- **Dano Moral**: Danos à integridade psicológica ou à dignidade da pessoa.
 """)
 
