@@ -1,80 +1,65 @@
 import streamlit as st
-from datetime import datetime, timedelta
+import pandas as pd
+import plotly.express as px
 
-# Função para calcular a prescrição
-def calcular_prescricao(data_crime, pena, tipo_prescricao, suspensao_interruptiva):
-    # Definir os prazos de prescrição com base na pena
-    if pena <= 1:
-        prazo_prescricao = timedelta(days=3*365)  # 3 anos para penas de até 1 ano
-    elif pena <= 2:
-        prazo_prescricao = timedelta(days=4*365)  # 4 anos para penas de até 2 anos
-    elif pena <= 4:
-        prazo_prescricao = timedelta(days=8*365)  # 8 anos para penas de até 4 anos
-    elif pena <= 8:
-        prazo_prescricao = timedelta(days=12*365)  # 12 anos para penas de até 8 anos
-    else:
-        prazo_prescricao = timedelta(days=16*365)  # 16 anos para penas superiores a 8 anos
+# Função para carregar dados
+def carregar_dados():
+    # Simulação de dados fictícios
+    data = {
+        'Estado': ['SP', 'RJ', 'MG', 'BA', 'RS'],
+        'Crimes Violentos': [80000, 65000, 50000, 60000, 40000],
+        'Taxa de Encarceramento': [400, 450, 350, 300, 500],
+        'Homicídios': [5000, 3500, 3000, 4000, 2000],
+        'Latrocínios': [150, 100, 90, 120, 80],
+        'Furto': [30000, 25000, 22000, 28000, 23000]
+    }
+    return pd.DataFrame(data)
 
-    # Tipo de prescrição (prescrição da ação penal ou prescrição da pena)
-    if tipo_prescricao == "Ação Penal":
-        prazo_prescricao = timedelta(days=prescricao_acao_pena(pena))
+# Carregar dados de criminalidade
+df = carregar_dados()
 
-    # Ajuste para causas suspensivas ou interruptivas
-    if suspensao_interruptiva:
-        prazo_prescricao += timedelta(days=2*365)  # Supondo 2 anos adicionais por causa suspensiva
-
-    # Calcular a data limite para prescrição
-    data_limite = data_crime + prazo_prescricao
-
-    # Verificar se o crime já prescreveu
-    hoje = datetime.now()
-    prescreveu = hoje > data_limite
-
-    return data_limite, prescreveu
-
-# Função para definir o prazo de prescrição da ação penal
-def prescricao_acao_pena(pena):
-    if pena <= 1:
-        return 8 * 365  # Ação penal prescreve em 8 anos
-    elif pena <= 2:
-        return 10 * 365  # Ação penal prescreve em 10 anos
-    elif pena <= 4:
-        return 12 * 365  # Ação penal prescreve em 12 anos
-    elif pena <= 8:
-        return 16 * 365  # Ação penal prescreve em 16 anos
-    else:
-        return 20 * 365  # Ação penal prescreve em 20 anos
-
-# Interface Streamlit
-st.title('Calculadora de Prescrição Penal')
+# Título do painel
+st.title("Painel de Estatísticas de Crimes e Prisões")
 
 st.write("""
-    **Bem-vindo à Calculadora de Prescrição Penal!**
-    
-    Aplique as informações do crime e da pena para calcular o prazo de prescrição e saber se o crime já prescreveu.
+    Este painel interativo permite visualizar dados sobre crimes e prisões no Brasil, 
+    com informações sobre taxas de criminalidade, encarceramento, tipos de crimes mais comuns, 
+    e comparações entre estados.
 """)
 
-# Inputs do usuário
-data_crime = st.date_input('Data do crime:')
-pena = st.number_input('Pena aplicada (em anos):', min_value=1, max_value=30, value=1)
-tipo_prescricao = st.selectbox('Tipo de prescrição:', ('Ação Penal', 'Prescrição da Pena'))
-suspensao_interruptiva = st.radio('Existem causas suspensivas ou interruptivas?', ('Sim', 'Não')) == 'Sim'
+# Mostrar os dados em uma tabela
+st.subheader('Tabela de Crimes e Taxas de Encarceramento por Estado')
+st.write(df)
 
-# Calcular o prazo de prescrição
-data_limite, prescreveu = calcular_prescricao(data_crime, pena, tipo_prescricao, suspensao_interruptiva)
+# Gráfico de Crimes Violentos por Estado
+st.subheader('Gráfico de Crimes Violentos por Estado')
+fig1 = px.bar(df, x='Estado', y='Crimes Violentos', title='Crimes Violentos por Estado')
+st.plotly_chart(fig1)
 
-# Exibir resultado
-if prescreveu:
-    st.markdown(f"**O crime prescreveu.** O prazo de prescrição foi até **{data_limite.strftime('%d/%m/%Y')}**.")
-else:
-    st.markdown(f"**O crime não prescreveu.** O prazo de prescrição vai até **{data_limite.strftime('%d/%m/%Y')}**.")
+# Gráfico de Taxa de Encarceramento
+st.subheader('Gráfico de Taxa de Encarceramento por Estado')
+fig2 = px.bar(df, x='Estado', y='Taxa de Encarceramento', title='Taxa de Encarceramento por Estado')
+st.plotly_chart(fig2)
 
-# Exemplo prático
-st.write("""
-    **Exemplo prático**:
-    
-    Se um crime ocorrido em 01/01/2010 com uma pena de 4 anos for analisado, com a prescrição da ação penal, ele terá o seguinte cálculo:
-    - Data limite de prescrição: 01/01/2022
-    - Se hoje for após 01/01/2022, o crime já terá prescrito.
-""")
+# Gráfico de Homicídios por Estado
+st.subheader('Gráfico de Homicídios por Estado')
+fig3 = px.bar(df, x='Estado', y='Homicídios', title='Número de Homicídios por Estado')
+st.plotly_chart(fig3)
+
+# Análise por Tipo de Crime (simulação com gráfico de pizza)
+st.subheader('Distribuição dos Tipos de Crimes em SP')
+dados_sp = df[df['Estado'] == 'SP'][['Homicídios', 'Latrocínios', 'Furto']].transpose()
+dados_sp.columns = ['Quantidade']
+dados_sp['Tipo de Crime'] = dados_sp.index
+fig4 = px.pie(dados_sp, values='Quantidade', names='Tipo de Crime', title="Distribuição dos Crimes em SP")
+st.plotly_chart(fig4)
+
+# Comparação com outro Estado
+estado_comparar = st.selectbox('Escolha um Estado para comparar com SP:', df['Estado'].tolist())
+if estado_comparar != 'SP':
+    dados_comparacao = df[df['Estado'] == estado_comparar][['Homicídios', 'Latrocínios', 'Furto']].transpose()
+    dados_comparacao.columns = ['Quantidade']
+    dados_comparacao['Tipo de Crime'] = dados_comparacao.index
+    fig5 = px.bar(dados_comparacao, x='Tipo de Crime', y='Quantidade', title=f'Comparação entre SP e {estado_comparar}')
+    st.plotly_chart(fig5)
 
