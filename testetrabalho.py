@@ -1,69 +1,62 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
-# Função para calcular o valor da indenização
-def calcular_indenizacao(tipo_dano, valor_dano, agravante, dias_juros, taxa_juros_ano=0.1, correcao_monetaria=0.05):
+# Função para calcular o valor da pensão alimentícia
+def calcular_pensao(renda, necessidades, percentual=0.3):
     """
-    Calcula o valor da indenização com base no tipo de dano, agravantes, juros e correção monetária.
-    
-    :param tipo_dano: Tipo de dano (material ou moral)
-    :param valor_dano: Valor estimado do dano
-    :param agravante: Agravantes (ex: sofrimento adicional)
-    :param dias_juros: Número de dias passados desde o evento
-    :param taxa_juros_ano: Taxa de juros anual (padrão: 10%)
-    :param correcao_monetaria: Taxa de correção monetária anual (padrão: 5%)
-    :return: Valor final da indenização
+    Calcula o valor da pensão alimentícia baseado na renda do alimentante e nas necessidades do alimentado.
+    O percentual é uma estimativa do valor a ser destinado, baseado na jurisprudência.
     """
-    # Cálculo do valor corrigido
-    correção = (1 + correcao_monetaria) ** (dias_juros / 365)
-    valor_corrigido = valor_dano * correção
-    
-    # Cálculo dos juros
-    juros = valor_corrigido * (1 + taxa_juros_ano) ** (dias_juros / 365) - valor_corrigido
-    
-    # Ajustando o valor com o agravante
-    valor_final = valor_corrigido + juros + agravante
-    return valor_final
+    valor_pensao = renda * percentual  # Percentual baseado na renda
+    valor_necessidade = necessidades  # Valor necessário para cobrir as necessidades básicas
+    valor_pensao_final = max(valor_pensao, valor_necessidade)  # A pensão será o maior valor entre o cálculo e as necessidades
 
-# Função para gerar gráfico de comparação
-def gerar_grafico(indenizacao):
+    return valor_pensao_final
+
+# Função para gerar gráfico da comparação entre percentual e necessidade
+def gerar_grafico(valor_pensao, valor_necessidade):
     fig, ax = plt.subplots()
-    ax.bar(["Indenização Final"], [indenizacao], color="#4CAF50")
-    ax.set_ylabel('Valor da Indenização (R$)')
-    ax.set_title('Cálculo da Indenização por Responsabilidade Civil')
+    categories = ['Pensão Calculada', 'Necessidades']
+    values = [valor_pensao, valor_necessidade]
+    ax.bar(categories, values, color=['#4CAF50', '#FF5733'])
+    ax.set_ylabel('Valor (R$)')
+    ax.set_title('Comparação entre Pensão Calculada e Necessidades')
     st.pyplot(fig)
 
 # Interface Streamlit
-st.title("Calculadora de Indenização por Responsabilidade Civil")
+st.title("Simulador de Pensão Alimentícia")
 
-# Escolher o tipo de dano
-tipo_dano = st.selectbox("Escolha o tipo de dano", ["Dano Material", "Dano Moral"])
+# Entrada de dados
+renda = st.number_input("Informe a renda mensal do alimentante (R$):", min_value=0.0)
+necessidades = st.number_input("Informe o valor das necessidades do alimentado (R$):", min_value=0.0)
+percentual = st.slider("Escolha o percentual de pensão (com base na jurisprudência)", 0.05, 0.5, 0.3, 0.01)
 
-# Entrar com o valor do dano
-valor_dano = st.number_input("Informe o valor estimado do dano (R$):", min_value=0.0)
+# Calcular o valor da pensão
+valor_pensao = calcular_pensao(renda, necessidades, percentual)
 
-# Agravantes (como sofrimento, dor, etc.)
-agravante = st.number_input("Informe valor adicional por agravantes (ex: sofrimento, dor) (R$):", min_value=0.0)
+# Exibir os resultados
+st.write(f"Valor da pensão alimentícia calculado: R${valor_pensao:,.2f}")
 
-# Tempo em dias desde o evento que causou o dano
-dias_juros = st.number_input("Informe o número de dias desde o evento que causou o dano:", min_value=0)
+# Gerar gráfico comparativo
+gerar_grafico(valor_pensao, necessidades)
 
-# Calcular a indenização
-indenizacao_final = calcular_indenizacao(tipo_dano, valor_dano, agravante, dias_juros)
+# Adicionalmente, podemos adicionar uma simulação de alteração no valor da renda ou nas necessidades
+alteracao_renda = st.number_input("Simule uma alteração na renda (R$):", 0.0)
+alteracao_necessidades = st.number_input("Simule uma alteração nas necessidades (R$):", 0.0)
 
-# Exibir resultados
-st.write(f"Valor final da indenização: R${indenizacao_final:,.2f}")
+# Calcular os novos valores de pensão com as alterações
+nova_renda = renda + alteracao_renda
+novas_necessidades = necessidades + alteracao_necessidades
 
-# Gerar gráfico de comparação
-gerar_grafico(indenizacao_final)
+# Recalcular a pensão com as novas informações
+nova_pensao = calcular_pensao(nova_renda, novas_necessidades, percentual)
 
-# Informações adicionais sobre o cálculo
-st.markdown("""
-### Como a Indenização foi Calculada:
-- **Valor do Dano**: O valor informado pelo usuário para o dano material ou moral.
-- **Agravantes**: Fatores adicionais como sofrimento, dor, perda de qualidade de vida, entre outros.
-- **Correção Monetária**: Considerando a inflação acumulada desde o evento.
-- **Juros**: Juros aplicados ao valor corrigido com base no tempo passado (dias) desde o evento.
-""")
+# Exibir os novos resultados
+st.write(f"Novo valor da pensão alimentícia com alteração na renda: R${nova_pensao:,.2f}")
+st.write(f"Nova renda do alimentante: R${nova_renda:,.2f}")
+st.write(f"Novas necessidades do alimentado: R${novas_necessidades:,.2f}")
+
+# Gerar gráfico comparativo após alterações
+gerar_grafico(nova_pensao, novas_necessidades)
+
