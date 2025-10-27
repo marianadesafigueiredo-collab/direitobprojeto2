@@ -1,73 +1,69 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
-# Função para simular a partilha de bens
-def calcular_partilha(bens, regime, filhos, dividas):
-    # Definindo os regimes de bens
-    if regime == "Comunhão Parcial":
-        # Regime de comunhão parcial - divide apenas os bens adquiridos durante o casamento
-        bens_comum = sum(bens['comum'])
-        bens_particular = sum(bens['particular'])
-        total_comum = bens_comum / 2  # Cada cônjuge recebe metade dos bens comuns
-        total_particular = bens_particular
-    elif regime == "Comunhão Universal":
-        # Regime de comunhão universal - todos os bens são comuns
-        bens_comum = sum(bens['comum']) + sum(bens['particular'])
-        bens_particular = 0
-        total_comum = bens_comum / 2  # Cada cônjuge recebe metade dos bens comuns
-        total_particular = 0
-    elif regime == "Separação Total":
-        # Regime de separação total - não há partilha de bens adquiridos individualmente
-        bens_comum = 0
-        bens_particular = sum(bens['comum']) + sum(bens['particular'])
-        total_comum = 0
-        total_particular = bens_particular
-    else:
-        total_comum = total_particular = 0
-
-    # Simulação de cenários de acordo com a presença de filhos e dívidas
-    if filhos > 0:
-        # Se houver filhos, a partilha pode ser alterada
-        total_comum += bens_comum * 0.1  # Aumento fictício para filhos (pode ser ajustado)
+# Função para calcular o valor da indenização
+def calcular_indenizacao(tipo_dano, valor_dano, agravante, dias_juros, taxa_juros_ano=0.1, correcao_monetaria=0.05):
+    """
+    Calcula o valor da indenização com base no tipo de dano, agravantes, juros e correção monetária.
     
-    if dividas > 0:
-        # Se houver dívidas, pode-se diminuir a partilha
-        total_comum -= dividas * 0.2  # Ajuste para dívidas (também fictício)
+    :param tipo_dano: Tipo de dano (material ou moral)
+    :param valor_dano: Valor estimado do dano
+    :param agravante: Agravantes (ex: sofrimento adicional)
+    :param dias_juros: Número de dias passados desde o evento
+    :param taxa_juros_ano: Taxa de juros anual (padrão: 10%)
+    :param correcao_monetaria: Taxa de correção monetária anual (padrão: 5%)
+    :return: Valor final da indenização
+    """
+    # Cálculo do valor corrigido
+    correção = (1 + correcao_monetaria) ** (dias_juros / 365)
+    valor_corrigido = valor_dano * correção
     
-    return total_comum, total_particular
+    # Cálculo dos juros
+    juros = valor_corrigido * (1 + taxa_juros_ano) ** (dias_juros / 365) - valor_corrigido
+    
+    # Ajustando o valor com o agravante
+    valor_final = valor_corrigido + juros + agravante
+    return valor_final
 
-# Função para gerar gráficos
-def gerar_grafico(partilha_comum, partilha_particular):
-    labels = ['Bens Comuns', 'Bens Particulares']
-    sizes = [partilha_comum, partilha_particular]
+# Função para gerar gráfico de comparação
+def gerar_grafico(indenizacao):
     fig, ax = plt.subplots()
-    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    ax.bar(["Indenização Final"], [indenizacao], color="#4CAF50")
+    ax.set_ylabel('Valor da Indenização (R$)')
+    ax.set_title('Cálculo da Indenização por Responsabilidade Civil')
     st.pyplot(fig)
 
 # Interface Streamlit
-st.title("Simulador de Divórcio e Partilha de Bens")
+st.title("Calculadora de Indenização por Responsabilidade Civil")
 
-# Entrada de dados
-regime = st.selectbox("Escolha o Regime de Bens", ["Comunhão Parcial", "Comunhão Universal", "Separação Total"])
-bens_comum = st.number_input("Valor de bens comuns (imóveis, veículos, etc.):", min_value=0)
-bens_particular = st.number_input("Valor de bens particulares (bens de cada cônjuge antes do casamento):", min_value=0)
-filhos = st.number_input("Número de filhos:", min_value=0)
-dividas = st.number_input("Valor das dívidas a serem consideradas:", min_value=0)
+# Escolher o tipo de dano
+tipo_dano = st.selectbox("Escolha o tipo de dano", ["Dano Material", "Dano Moral"])
 
-# Criação do dataframe de bens
-bens = pd.DataFrame({
-    'comum': [bens_comum],
-    'particular': [bens_particular]
-})
+# Entrar com o valor do dano
+valor_dano = st.number_input("Informe o valor estimado do dano (R$):", min_value=0.0)
 
-# Cálculo da partilha
-partilha_comum, partilha_particular = calcular_partilha(bens, regime, filhos, dividas)
+# Agravantes (como sofrimento, dor, etc.)
+agravante = st.number_input("Informe valor adicional por agravantes (ex: sofrimento, dor) (R$):", min_value=0.0)
 
-# Exibição dos resultados
-st.write(f"Total de bens comuns: R${partilha_comum:,.2f}")
-st.write(f"Total de bens particulares: R${partilha_particular:,.2f}")
+# Tempo em dias desde o evento que causou o dano
+dias_juros = st.number_input("Informe o número de dias desde o evento que causou o dano:", min_value=0)
 
-# Gerar gráfico de partilha
-gerar_grafico(partilha_comum, partilha_particular)
+# Calcular a indenização
+indenizacao_final = calcular_indenizacao(tipo_dano, valor_dano, agravante, dias_juros)
+
+# Exibir resultados
+st.write(f"Valor final da indenização: R${indenizacao_final:,.2f}")
+
+# Gerar gráfico de comparação
+gerar_grafico(indenizacao_final)
+
+# Informações adicionais sobre o cálculo
+st.markdown("""
+### Como a Indenização foi Calculada:
+- **Valor do Dano**: O valor informado pelo usuário para o dano material ou moral.
+- **Agravantes**: Fatores adicionais como sofrimento, dor, perda de qualidade de vida, entre outros.
+- **Correção Monetária**: Considerando a inflação acumulada desde o evento.
+- **Juros**: Juros aplicados ao valor corrigido com base no tempo passado (dias) desde o evento.
+""")
