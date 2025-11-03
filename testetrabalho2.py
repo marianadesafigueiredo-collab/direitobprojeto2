@@ -49,38 +49,52 @@ if nome_deputado:
                         # Cria DataFrame
                         df = pd.DataFrame(despesas)
 
-                        # Converte valorDocumento para float (corrige erro do gráfico)
-                        df["valorDocumento"] = pd.to_numeric(df["valorDocumento"], errors="coerce").fillna(0)
+                        # Converte valorDocumento para número (corrige erro do gráfico)
+                        df["valorDocumento"] = pd.to_numeric(df.get("valorDocumento", 0), errors="coerce").fillna(0)
 
-                        # Exibe tabela
-                        st.dataframe(df[["ano", "mes", "tipoDespesa", "valorDocumento", "fornecedor"]])
+                        # Lista de colunas desejadas
+                        colunas_desejadas = ["ano", "mes", "tipoDespesa", "valorDocumento", "fornecedor"]
+
+                        # Mantém apenas as colunas que realmente existem no DataFrame
+                        colunas_existentes = [col for col in colunas_desejadas if col in df.columns]
+
+                        # Exibe tabela apenas com colunas disponíveis
+                        if colunas_existentes:
+                            st.dataframe(df[colunas_existentes])
+                        else:
+                            st.warning("Não há colunas esperadas disponíveis para exibição.")
 
                         # --- Gráficos ---
                         st.markdown("### 📊 Gráfico de Despesas")
 
-                        # Gráfico de barras por tipo de despesa
                         if not df.empty:
-                            grafico_tipo = (
-                                df.groupby("tipoDespesa")["valorDocumento"]
-                                .sum()
-                                .sort_values(ascending=False)
-                            )
-
-                            if not grafico_tipo.empty:
-                                st.bar_chart(grafico_tipo)
+                            # Gráfico de barras por tipo de despesa
+                            if "tipoDespesa" in df.columns:
+                                grafico_tipo = (
+                                    df.groupby("tipoDespesa")["valorDocumento"]
+                                    .sum()
+                                    .sort_values(ascending=False)
+                                )
+                                if not grafico_tipo.empty:
+                                    st.bar_chart(grafico_tipo)
+                                else:
+                                    st.info("Sem dados para gerar o gráfico por tipo de despesa.")
                             else:
-                                st.info("Sem dados numéricos para gerar o gráfico por tipo de despesa.")
+                                st.info("Coluna 'tipoDespesa' não disponível para gerar gráfico.")
 
                             # Gráfico de linha por mês (ordenado)
-                            grafico_mes = (
-                                df.groupby("mes")["valorDocumento"]
-                                .sum()
-                                .sort_index()
-                            )
-                            if not grafico_mes.empty:
-                                st.line_chart(grafico_mes)
+                            if "mes" in df.columns:
+                                grafico_mes = (
+                                    df.groupby("mes")["valorDocumento"]
+                                    .sum()
+                                    .sort_index()
+                                )
+                                if not grafico_mes.empty:
+                                    st.line_chart(grafico_mes)
+                                else:
+                                    st.info("Sem dados para gerar o gráfico mensal.")
                             else:
-                                st.info("Sem dados numéricos para gerar o gráfico mensal.")
+                                st.info("Coluna 'mes' não disponível para gerar gráfico.")
                         else:
                             st.warning("Não foi possível gerar gráficos — dados vazios.")
 
