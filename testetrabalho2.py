@@ -46,23 +46,43 @@ if nome_deputado:
                     if despesas:
                         st.success(f"{len(despesas)} despesa(s) encontrada(s):")
                         
-                        # Cria DataFrame com as despesas
+                        # Cria DataFrame
                         df = pd.DataFrame(despesas)
-                        
+
+                        # Converte valorDocumento para float (corrige erro do gráfico)
+                        df["valorDocumento"] = pd.to_numeric(df["valorDocumento"], errors="coerce").fillna(0)
+
                         # Exibe tabela
                         st.dataframe(df[["ano", "mes", "tipoDespesa", "valorDocumento", "fornecedor"]])
-                        
+
+                        # --- Gráficos ---
                         st.markdown("### 📊 Gráfico de Despesas")
-                        
-                        # Agrupa por tipo de despesa
-                        grafico_tipo = df.groupby("tipoDespesa")["valorDocumento"].sum().sort_values(ascending=False)
-                        st.bar_chart(grafico_tipo)
 
-                        # Agrupa por mês (somando valores)
-                        grafico_mes = df.groupby("mes")["valorDocumento"].sum().sort_index()
-                        st.line_chart(grafico_mes)
+                        # Gráfico de barras por tipo de despesa
+                        if not df.empty:
+                            grafico_tipo = (
+                                df.groupby("tipoDespesa")["valorDocumento"]
+                                .sum()
+                                .sort_values(ascending=False)
+                            )
 
-                        st.markdown("Os gráficos acima mostram a distribuição de despesas por tipo e a variação mensal.")
+                            if not grafico_tipo.empty:
+                                st.bar_chart(grafico_tipo)
+                            else:
+                                st.info("Sem dados numéricos para gerar o gráfico por tipo de despesa.")
+
+                            # Gráfico de linha por mês (ordenado)
+                            grafico_mes = (
+                                df.groupby("mes")["valorDocumento"]
+                                .sum()
+                                .sort_index()
+                            )
+                            if not grafico_mes.empty:
+                                st.line_chart(grafico_mes)
+                            else:
+                                st.info("Sem dados numéricos para gerar o gráfico mensal.")
+                        else:
+                            st.warning("Não foi possível gerar gráficos — dados vazios.")
 
                     else:
                         st.warning("Nenhuma despesa encontrada para este deputado.")
