@@ -1,71 +1,71 @@
-import streamlit as st
-import pandas as pd
+# --- Parte 2: Consulta de despesas pelo ID ---
+st.markdown("---")
+st.subheader("Consultar despesas do deputado")
+id_deputado = st.text_input("Digite o ID do deputado para ver suas despesas:")
 
-st.title("Consulta de Deputados - Base dos Dados (Versão CSV Pública)")
+if id_deputado:
+    base_url = f"https://dadosabertos.camara.leg.br/api/v2/deputados/{id_deputado}/despesas"
+    despesas = []
+    pagina = 1
 
-# URLs públicas dos CSVs da Base dos Dados
-URL_DEPUTADOS = "https://storage.googleapis.com/basedosdados-public/extra/br_camara_deputados/deputado.csv"
-URL_DESPESAS = "https://storage.googleapis.com/basedosdados-public/extra/br_camara_deputados/despesa.csv"
-
-# --- Parte 1: Consulta pelo nome do deputado ---
-nome_deputado = st.text_input("Digite o nome do deputado:")
-
-if nome_deputado:
     try:
-        deputados = pd.read_csv(URL_DEPUTADOS, dtype=str)
-        deputados_filtrados = deputados[deputados["nome"].str.contains(nome_deputado, case=False, na=False)]
+        # Loop para percorrer todas as páginas
+        while True:
+            url_despesas = f"{base_url}?pagina={pagina}&itens=100"  # até 100 por página
+            resp_despesas = requests.get(url_despesas, timeout=10)
+            despesas_data = resp_despesas.json()
+            dados_pagina = despesas_data.get("dados", [])
 
-        if not deputados_filtrados.empty:
-            st.success(f"{len(deputados_filtrados)} deputado(s) encontrado(s):")
-            for _, dep in deputados_filtrados.iterrows():
-                st.subheader(dep["nome"])
-                st.write(f"**ID:** {dep['id_deputado']}")
-                st.write(f"**Sigla Partido:** {dep['sigla_partido']}")
-                st.write(f"**UF:** {dep['sigla_uf']}")
+            if not dados_pagina:
+                break  # sem mais páginas
 
-            # --- Parte 2: Consulta de despesas pelo ID ---
-            st.markdown("---")
-            st.subheader("Consultar despesas do deputado")
-            id_deputado = st.text_input("Digite o ID do deputado para ver suas despesas:")
+            despesas.extend(dados_pagina)
+            pagina += 1
 
-            if id_deputado:
-                despesas = pd.read_csv(URL_DESPESAS, dtype=str)
-                despesas = despesas[despesas["id_deputado"] == id_deputado]
+        if despesas:
+            st.success(f"{len(despesas)} despesa(s) encontrada(s):")
 
-                if not despesas.empty:
-                    st.success(f"{len(despesas)} despesa(s) encontrada(s):")
+            df = pd.DataFrame(despesas)
+            df["valorDocumento"] = pd.to_numeric(df.get("valorDocumento", 0), errors="coerce").fillna(0)
 
-                    despesas["valor_documento"] = pd.to_numeric(
-                        despesas["valor_documento"], errors="coerce"
-                    ).fillna(0)
+            colunas_desejadas = ["ano", "mes", "tipoDespesa", "valorDocumento", "fornecedor"]
+            colunas_existentes = [col for col in colunas_desejadas if col in df.columns]
 
-                    colunas = ["ano", "mes", "tipo_despesa", "valor_documento", "fornecedor"]
-                    colunas_existentes = [c for c in colunas if c in despesas.columns]
-                    st.dataframe(despesas[colunas_existentes])
+            if colunas_existentes:
+                st.dataframe(df[colunas_existentes])
+            else:
+                st.warning("Não há colunas esperadas disponíveis para exibição.")
 
-                    # Gráficos
-                    st.markdown("### 📊 Gráfico de Despesas")
+            # --- Gráficos ---
+            st.markdown("### 📊 Gráfico de Despesas")
 
-                    if "tipo_despesa" in despesas.columns:
-                        grafico_tipo = (
-                            despesas.groupby("tipo_despesa")["valor_documento"]
-                            .sum()
-                            .sort_values(ascending=False)
-                        )
+            if not df.empty:
+                if "tipoDespesa" in df.columns:
+                    grafico_tipo = (
+                        df.groupby("tipoDespesa")["valorDocumento"]
+                        .sum()
+                        .sort_values(ascending=False)
+                    )
+                    if not grafico_tipo.empty:
                         st.bar_chart(grafico_tipo)
+                    else:
+                        st.info("Sem dados para gerar o gráfico por tipo de despesa.")
 
-                    if "mes" in despesas.columns:
-                        grafico_mes = (
-                            despesas.groupby("mes")["valor_documento"]
-                            .sum()
-                            .sort_index()
-                        )
+                if "mes" in df.columns:
+                    grafico_mes = (
+                        df.groupby("mes")["valorDocumento"]
+                        .sum()
+                        .sort_index()
+                    )
+                    if not grafico_mes.empty:
                         st.line_chart(grafico_mes)
-                else:
-                    st.warning("Nenhuma despesa encontrada para este deputado.")
+                    else:
+                        st.info("Sem dados para gerar o gráfico mensal.")
+            else:
+                st.warning("Não foi possível gerar gráficos — dados vazios.")
+
         else:
-            st.warning("Nenhum deputado encontrado com esse nome.")
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {e}")
+            st.warning("Nenhuma despesa encontrada para este deputado.")
 
-
+    except requests.RequestException as e:
+        st.error(f"Erro ao consultar as despesas: {e}")
